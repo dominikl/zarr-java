@@ -53,8 +53,17 @@ public class Group extends Node {
   @Nullable
   public Node get(String key) throws ZarrException {
     StoreHandle keyHandle = storeHandle.resolve(key);
+    return getFromStoreHandle(keyHandle);
+  }
+
+  @Nullable
+  public Node get() throws ZarrException {
+    return getFromStoreHandle(storeHandle);
+  }
+
+  private Node getFromStoreHandle(StoreHandle storeHandle) throws ZarrException {
     ObjectMapper objectMapper = Node.makeObjectMapper();
-    ByteBuffer metadataBytes = keyHandle.resolve(ZARR_JSON)
+    ByteBuffer metadataBytes = storeHandle.resolve(ZARR_JSON)
         .read();
     if (metadataBytes == null) {
       return null;
@@ -66,13 +75,13 @@ public class Group extends Node {
           .asText();
       switch (nodeType) {
         case ArrayMetadata.NODE_TYPE:
-          return new Array(keyHandle,
+          return new Array(storeHandle,
               objectMapper.readValue(metadataBytearray, ArrayMetadata.class));
         case GroupMetadata.NODE_TYPE:
-          return new Group(keyHandle,
+          return new Group(storeHandle,
               objectMapper.readValue(metadataBytearray, GroupMetadata.class));
         default:
-          throw new ZarrException("Unsupported node_type '" + nodeType + "' in " + keyHandle);
+          throw new ZarrException("Unsupported node_type '" + nodeType + "' in " + storeHandle);
       }
     } catch (IOException e) {
       return null;
